@@ -118,13 +118,17 @@ async def search(ctx, song_name, message):
 		video_title = item['snippet']['title']
 		video_url = f'https://www.youtube.com/watch?v={item["id"]["videoId"]}'
 		results.append({'title': video_title, 'url': video_url})
+
+	choose_song = ''
 	for index, result in enumerate(results):
-		await ctx.send(f'```{index + 1} - {result["title"]}```')
+		choose_song += f'{index + 1} - {result["title"]}\n'
+	await ctx.send(f'```{choose_song}```')
 	await ctx.send("""```!play <digit>: Plays the selected song inmediatly.
 !qeue <digit>: Adds the selected song to the qeue.```""")
-	#######
-	#choice = await bot.wait_for_message(check=lambda msg: is_author(message, message.author, message.channel))
-	#print(choice.author)
+	choice = await bot.wait_for('message', check=lambda msg: is_author(message, message.author, message.channel))
+
+	##all the code below goes on play function
+	await ctx.send(f'{results[index]["title"]}')
 
 @bot.command(name='play')
 async def play(ctx):
