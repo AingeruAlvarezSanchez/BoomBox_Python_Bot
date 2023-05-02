@@ -1,11 +1,15 @@
 from dotenv import load_dotenv
 import os
+import io
 
 import discord
 from discord.ext import commands
 
 import youtube_dl
 from googleapiclient.discovery import build
+
+from pydub import AudioSegment
+import urllib.request
 
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
@@ -31,7 +35,8 @@ ytdl_format_options = {
 	'quiet': True,
 	'no_warnings': True,
 	'default_search': 'auto',
-	'source_address': '0.0.0.0'
+	'source_address': '0.0.0.0',
+	'hls_prefer_native': True
 }
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 youtube_service = build('youtube', 'v3', developerKey=YOUTUBE_TOKEN)
@@ -80,7 +85,7 @@ async def on_guild_join(guild):
 
 @bot.event
 async def on_ready():
-    print(f'{bot.user.name} GruvBox sucessfully Connected to Discord')
+    print(f'{bot.user.name} Boombox sucessfully Connected to Discord')
 
 @bot.event
 async def on_message(message):
@@ -92,9 +97,6 @@ async def on_message(message):
 		song_name = ' '.join(message.content.split(' ')[1:])
 		await search(message.channel, song_name, message)
 #Bot event submodule here
-
-def is_author(message, author, channel):
-	return message.author == author and message.channel == channel
 
 #Bot command handler submodules here
 @bot.command()
@@ -125,10 +127,28 @@ async def search(ctx, song_name, message):
 	await ctx.send(f'```{choose_song}```')
 	await ctx.send("""```!play <digit>: Plays the selected song inmediatly.
 !qeue <digit>: Adds the selected song to the qeue.```""")
-	choice = await bot.wait_for('message', check=lambda msg: is_author(message, message.author, message.channel))
+
+	#I need to check if the author of the message sent to wait_for is the same as the author which wrote the message
+	choice = await bot.wait_for('message', check=lambda msg: msg.author == msg.author and msg.channel == msg.channel)
 
 	##all the code below goes on play function
-	await ctx.send(f'{results[index]["title"]}')
+	selection = int(choice.content.split()[1]) - 1
+
+	#debuging
+	print(f'{choice.author.name}')
+	#debuging
+
+	await ctx.send(f'{results[selection]["title"]}')
+	if choice.author.voice and choice.channel:
+		voice_channel = choice.author.voice.channel
+		await voice_channel.connect()
+		#FFMPEG nightmare
+		#ffmpeg install here
+		source = discord.PCMVolumeTransformer(audio_segment, volume=0.5)
+		message.author.voice.channel.play(source)
+		#FFMPEG nightmare
+	else:
+		print('error message, the author is not on a voice channel')
 
 @bot.command(name='play')
 async def play(ctx):
